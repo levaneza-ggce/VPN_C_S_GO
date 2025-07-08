@@ -8,12 +8,26 @@ This is a simple VPN client and server written in Go. It uses a TUN interface to
 
 ```bash
 cd server
-go run server.go
+go run server.go --ip <server-tun-ip> --subnet <server-tun-subnet> --port <server-port> --psk <pre-shared-key>
+```
+
+**Example:**
+
+```bash
+go run server.go --ip 10.0.0.1 --subnet 255.255.255.0 --port 8080 --psk "mysecretkey"
 ```
 
 ### Client
 
 ```bash
 cd client
-go run client.go
+go run client.go --server-ip <server-public-ip> --server-port <server-port> --client-ip <client-tun-ip> --client-subnet <client-tun-subnet> --psk <pre-shared-key>
 ```
+
+**Example:**
+
+```bash
+go run client.go --server-ip 192.168.1.100 --server-port 8080 --client-ip 10.0.0.2 --client-subnet 255.255.255.0 --psk "mysecretkey"
+```
+
+**Note:** You will need administrator privileges to run these commands as they configure network interfaces.

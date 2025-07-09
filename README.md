@@ -6,16 +6,38 @@ This is a simple VPN client and server written in Go. It uses a TUN interface to
 
 ### Server
 
+**Windows:**
+
 ```bash
 cd server
 go run server.go --ip <server-tun-ip> --subnet <server-tun-subnet> --port <server-port> --psk <pre-shared-key> [--tap-component-id <component-id>]
 ```
 
-**Example:**
+**Example (Windows):**
 
 ```bash
 go run server.go --ip 10.0.0.1 --subnet 255.255.255.0 --port 8080 --psk "mysecretkey" --tap-component-id "tap0901"
 ```
+
+**Linux (CentOS 7 Example):**
+
+1.  **Compile for Linux:**
+    ```bash
+    cd server
+    GOOS=linux GOARCH=amd64 go build -o server
+    ```
+2.  **Run the server (as root or with sudo):**
+    ```bash
+    sudo ./server --ip <server-tun-ip> --subnet <server-tun-subnet> --port <server-port> --psk <pre-shared-key>
+    ```
+
+    **Example (Linux):**
+
+    ```bash
+    sudo ./server --ip 10.0.0.1 --subnet 255.255.255.0 --port 8080 --psk "mysecretkey"
+    ```
+
+    **Note:** On Linux, you might need to install `tuntap` utilities if not already present (e.g., `yum install tunctl` or `iproute2`). Also, ensure IP forwarding is enabled (`sysctl -w net.ipv4.ip_forward=1`) and set up NAT/masquerading if you want clients to access the internet through the VPN server (e.g., `iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE`).
 
 ### Client
 

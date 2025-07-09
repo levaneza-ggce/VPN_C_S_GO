@@ -1,0 +1,1 @@
+Add tap-component-id CLI option and update README

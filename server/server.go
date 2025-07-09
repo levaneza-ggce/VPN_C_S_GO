@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/songgao/water"
 )
@@ -38,13 +39,34 @@ func main() {
 
 	log.Printf("Interface Name: %s\n", ifce.Name())
 
-	// Configure the TUN interface (Windows specific)
-	cmd := exec.Command("netsh", "interface", "ip", "set", "address",
-		fmt.Sprintf("name=%s", ifce.Name()), "static", *ip, *subnet, "none")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("Error configuring TUN interface: %v", err)
+	// Configure the TUN interface based on OS
+	switch runtime.GOOS {
+	case "windows":
+		cmd := exec.Command("netsh", "interface", "ip", "set", "address",
+			fmt.Sprintf("name=%s", ifce.Name()), "static", *ip, *subnet, "none")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("Error configuring TUN interface on Windows: %v", err)
+		}
+	case "linux":
+		// Set IP address
+		cmd := exec.Command("ip", "addr", "add", fmt.Sprintf("%s/%s", *ip, *subnet), "dev", ifce.Name())
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("Error setting IP address on Linux: %v", err)
+		}
+
+		// Bring up the interface
+		cmd = exec.Command("ip", "link", "set", "dev", ifce.Name(), "up")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatalf("Error bringing up interface on Linux: %v", err)
+		}
+	default:
+		log.Fatalf("Unsupported operating system: %s", runtime.GOOS)
 	}
 
 	log.Printf("Configured TUN interface %s with IP %s/%s\n", ifce.Name(), *ip, *subnet)

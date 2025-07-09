@@ -16,15 +16,22 @@ var (
 	subnet = flag.String("subnet", "255.255.255.0", "Subnet mask for the TUN interface")
 	port = flag.Int("port", 8080, "Listening port for the VPN server")
 	psk = flag.String("psk", "this-is-a-very-secret-key-123456", "Pre-shared key for encryption")
+	tapComponentID = flag.String("tap-component-id", "", "Optional: Component ID of the TAP device (e.g., tap0901)")
 )
 
 func main() {
 	flag.Parse()
 
-	// Create a new TUN interface
-	ifce, err := water.New(water.Config{
+	config := water.Config{
 		DeviceType: water.TUN,
-	})
+	}
+
+	if *tapComponentID != "" {
+		config.ComponentID = *tapComponentID
+	}
+
+	// Create a new TUN interface
+	ifce, err := water.New(config)
 	if err != nil {
 		log.Fatal(err)
 	}

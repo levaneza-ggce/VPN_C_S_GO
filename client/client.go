@@ -17,6 +17,7 @@ var (
 	clientIP = flag.String("client-ip", "10.0.0.2", "IP address for the TUN interface")
 	clientSubnet = flag.String("client-subnet", "255.255.255.0", "Subnet mask for the TUN interface")
 	psk = flag.String("psk", "this-is-a-very-secret-key-123456", "Pre-shared key for encryption")
+	tapComponentID = flag.String("tap-component-id", "", "Optional: Component ID of the TAP device (e.g., tap0901)")
 )
 
 func main() {
@@ -31,10 +32,16 @@ func main() {
 
 	log.Println("Connected to server")
 
-	// Create a new TUN interface
-	ifce, err := water.New(water.Config{
+	config := water.Config{
 		DeviceType: water.TUN,
-	})
+	}
+
+	if *tapComponentID != "" {
+		config.ComponentID = *tapComponentID
+	}
+
+	// Create a new TUN interface
+	ifce, err := water.New(config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,21 +87,21 @@ func main() {
 	buf := make([]byte, 1500)
 	for {
 		n, err := ifce.Read(buf)
-		if err != nil {
-			log.Println("Error reading from TUN interface:", err)
-			return
-		}
+			if err != nil {
+				log.Println("Error reading from TUN interface:", err)
+				return
+			}
 
-		encrypted, err := Encrypt(buf[:n], []byte(*psk))
-		if err != nil {
-			log.Println("Error encrypting data:", err)
-			return
-		}
+			encrypted, err := Encrypt(buf[:n], []byte(*psk))
+			if err != nil {
+				log.Println("Error encrypting data:", err)
+				return
+			}
 
-		_, err = conn.Write(encrypted)
-		if err != nil {
-			log.Println("Error writing to server:", err)
-			return
+			_, err = conn.Write(encrypted)
+			if err != nil {
+				log.Println("Error writing to server:", err)
+				return
+			}
 		}
-	}
 }

@@ -1,19 +1,29 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/exec"
 
 	"github.com/songgao/water"
 )
 
-// A pre-shared key for encryption. In a real-world application, you would want to
-// use a more secure key exchange mechanism.
-var psk = []byte("this-is-a-very-secret-key-123456")
+var (
+	serverIP = flag.String("server-ip", "localhost", "IP address of the VPN server")
+	serverPort = flag.Int("server-port", 8080, "Port of the VPN server")
+	clientIP = flag.String("client-ip", "10.0.0.2", "IP address for the TUN interface")
+	clientSubnet = flag.String("client-subnet", "255.255.255.0", "Subnet mask for the TUN interface")
+	psk = flag.String("psk", "this-is-a-very-secret-key-123456", "Pre-shared key for encryption")
+)
 
 func main() {
+	flag.Parse()
+
 	// Connect to the server
-	conn, err := net.Dial("tcp", "localhost:8080")
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *serverIP, *serverPort))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,8 +39,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Interface Name: %s
-", ifce.Name())
+	log.Printf("Interface Name: %s\n", ifce.Name())
+
+	// Configure the TUN interface (Windows specific)
+	cmd := exec.Command("netsh", "interface", "ip", "set", "address",
+		fmt.Sprintf("name=%s", ifce.Name()), "static", *clientIP, *clientSubnet, "none")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("Error configuring TUN interface: %v", err)
+	}
+
+	log.Printf("Configured TUN interface %s with IP %s/%s\n", ifce.Name(), *clientIP, *clientSubnet)
 
 	// Goroutine to read from the server and write to the TUN interface
 	go func() {
@@ -42,7 +62,7 @@ func main() {
 				return
 			}
 
-			decrypted, err := Decrypt(buf[:n], psk)
+			decrypted, err := Decrypt(buf[:n], []byte(*psk))
 			if err != nil {
 				log.Println("Error decrypting data:", err)
 				return
@@ -65,7 +85,7 @@ func main() {
 			return
 		}
 
-		encrypted, err := Encrypt(buf[:n], psk)
+		encrypted, err := Encrypt(buf[:n], []byte(*psk))
 		if err != nil {
 			log.Println("Error encrypting data:", err)
 			return

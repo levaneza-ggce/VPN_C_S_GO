@@ -37,7 +37,7 @@ func main() {
 	}
 
 	if *tapComponentID != "" {
-		config.ComponentID = *tapComponentID
+		// config.ComponentID = *tapComponentID // Not needed for Linux, and not present in water.Config
 	}
 
 	// Create a new TUN interface
